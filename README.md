@@ -9,7 +9,7 @@ interacting with the P2P network and building interesting scripts.
 
 > [!WARNING] 
 > This project is not maintained with use of real (mainnet) funds in mind.
-> The bulk of the code comes from a test framework that is written for use with regtest
+> The bulk of the code comes from a test framework that is intended for use with regtest
 > only. You might lose money using this!
 
 Notably, this project copies the [Bitcoin Core functional test
