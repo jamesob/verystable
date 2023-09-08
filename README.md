@@ -48,7 +48,7 @@ $ python
 
 ## Examples
 
-Examples are contained in [exmaples/](examples/).
+Examples are contained in [examples/](examples/).
 
 ## Pulling from upstream
 
