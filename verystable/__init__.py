@@ -1,1 +1,1 @@
-from . import core, softforks
+from . import core, softforks, rpc
