@@ -20,8 +20,7 @@ def activate_bip119_ctv():
     script.OP_CHECKTEMPLATEVERIFY = script.CScriptOp(0xb3)
     script.OPCODE_NAMES[script.OP_CHECKTEMPLATEVERIFY] = 'OP_CHECKTEMPLATEVERIFY'
 
-    messages.CTransaction.get_standard_template_hash = (
-        types.MethodType(_get_standard_template_hash, messages.CTransaction))
+    messages.CTransaction.get_standard_template_hash = _get_standard_template_hash
 
 
 def _get_standard_template_hash(self, nIn):
