@@ -1,41 +1,68 @@
+import io
+
+from . import core
 from .core import key, script
-from .core.script import CTransaction, CScript, CScriptNum, TaprootInfo
+from .core.script import CScript, CScriptNum
 
 
-def pprint_tx(tx: CTransaction, should_print: bool = True) -> str:
-    s = f"CTransaction: (nVersion={tx.nVersion})\n"
-    s += "  vin:\n"
-    for i, inp in enumerate(tx.vin):
-        s += f"    - [{i}] {inp}\n"
-    s += "  vout:\n"
-    for i, out in enumerate(tx.vout):
-        s += f"    - [{i}] {out}\n"
+class CTransaction(core.messages.CTransaction):
+    def pformat(self) -> str:
+        s = f"CTransaction: (nVersion={self.nVersion})\n"
+        s += "  vin:\n"
+        for i, inp in enumerate(self.vin):
+            s += f"    - [{i}] {inp}\n"
+        s += "  vout:\n"
+        for i, out in enumerate(self.vout):
+            s += f"    - [{i}] {out}\n"
 
-    s += "  witnesses:\n"
-    for i, wit in enumerate(tx.wit.vtxinwit):
-        s += f"    - [{i}]\n"
-        for j, item in enumerate(wit.scriptWitness.stack):
-            if type(item) == bytes:
-                scriptstr = repr(CScript([item]))
-            elif type(item) in {CScript, CScriptNum}:
-                scriptstr = repr(item)
-            else:
-                raise NotImplementedError
+        s += "  witnesses:\n"
+        for i, wit in enumerate(self.wit.vtxinwit):
+            s += f"    - [{i}]\n"
+            for j, item in enumerate(wit.scriptWitness.stack):
+                if type(item) == bytes:
+                    scriptstr = repr(CScript([item]))
+                elif type(item) in {CScript, CScriptNum}:
+                    scriptstr = repr(item)
+                else:
+                    raise NotImplementedError
 
-            s += f"      - [{i}.{j}] {scriptstr}\n"
+                s += f"      - [{i}.{j}] {scriptstr}\n"
 
-    s += f"  nLockTime: {tx.nLockTime}\n"
+        s += f"  nLockTime: {self.nLockTime}\n"
 
-    if should_print:
-        print(s)
-    return s
+        return s
+
+    def pprint(self) -> None:
+        print(self.pformat())
+
+    @classmethod
+    def fromhex(cls, h: str) -> "CTransaction":
+        tx = cls()
+        tx.deserialize(io.BytesIO(bytes.fromhex(h)))
+        return tx
+
+    def tohex(self) -> str:
+        return self.serialize().hex()
 
 
-def controlblock_for_script_spend(tr: TaprootInfo, script_name: str) -> bytes:
-    leaf = tr.leaves[script_name]
-    return (
-        bytes([leaf.version + tr.negflag]) + tr.internal_pubkey + leaf.merklebranch
-    )
+__TaprootInfo = core.script.TaprootInfo
+
+
+class TaprootInfo(__TaprootInfo):
+    @property
+    def p2tr_address(self) -> str:
+        return core.address.output_key_to_p2tr(self.output_pubkey)
+
+    def controlblock_for_script_spend(self, script_name: str) -> bytes:
+        leaf = self.leaves[script_name]
+        return (
+            bytes([leaf.version + self.negflag])
+            + self.internal_pubkey
+            + leaf.merklebranch
+        )
+
+
+core.script.TaprootInfo = TaprootInfo
 
 
 def taproot_from_privkey(pk: key.ECKey, scripts=None) -> script.TaprootInfo:

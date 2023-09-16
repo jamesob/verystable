@@ -64,21 +64,41 @@ class Spend:
     tx: dict
 
     def __repr__(self) -> str:
-        return f"Spend(amt={self.spent_utxo.value_sats} from_addr={self.spent_utxo.address}, height={self.height})"
+        return (
+            f"Spend(amt={self.spent_utxo.value_sats} "
+            f"from_addr={self.spent_utxo.address}, height={self.height})"
+        )
 
 
-def get_addr_history(
-    rpc: BitcoinRPC,
-    addr_watchlist: t.Iterable[str],
-) -> tuple[set[Utxo], list[Spend]]:
+def get_confs_for_txid(
+    rpc: BitcoinRPC, target_txid: str, min_height: int = 0
+) -> int | None:
+    """Return the number of confirmations for a transaction."""
+    height = rpc.getblockcount()
+    found_height = None
+    while min_height is None or height >= min_height:
+        blk = rpc.getblock(rpc.getblockhash(height), 1)
+        height -= 1
+
+        for txid in blk["tx"]:
+            if txid == target_txid:
+                found_height = blk["height"]
+
+    if found_height is None:
+        return None
+
+    return rpc.getblockcount() - found_height + 1
+
+
+def get_relevant_blocks(
+    rpc: BitcoinRPC, addrs: t.Iterable[str], startheight: int = 0
+) -> list[tuple[int, dict]]:
     """
-    Return all outstanding UTXOs associated with a set of addresses, and their spend history.
+    Given some addresses, return height/block pairs with relevant activity.
     """
-    utxos: set[Utxo] = set()
-    spent: list[Spend] = []
-    scanarg = [f"addr({addr})" for addr in addr_watchlist]
+    scanarg = [f"addr({addr})" for addr in addrs]
 
-    got = rpc.scanblocks("start", scanarg)
+    got = rpc.scanblocks("start", scanarg, startheight)
     assert "relevant_blocks" in got
 
     heights_and_blocks = []
@@ -86,6 +106,20 @@ def get_addr_history(
         block = rpc.getblock(hash, 2)
         heights_and_blocks.append((block["height"], block))
 
+    return heights_and_blocks
+
+
+def get_addr_history(
+    rpc: BitcoinRPC,
+    addr_watchlist: t.Iterable[str],
+) -> tuple[set[Utxo], list[Spend]]:
+    """
+    Return all outstanding UTXOs associated with a set of addresses, and their spend
+    history.
+    """
+    utxos: set[Utxo] = set()
+    spent: list[Spend] = []
+    heights_and_blocks = get_relevant_blocks(rpc, addr_watchlist)
     outpoint_to_utxo: dict[Outpoint, Utxo] = {}
     txids_to_watch: set[str] = set()
 
