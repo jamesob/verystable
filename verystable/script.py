@@ -47,7 +47,6 @@ class CTransaction(core.messages.CTransaction):
 
 __TaprootInfo = core.script.TaprootInfo
 
-
 class TaprootInfo(__TaprootInfo):
     @property
     def p2tr_address(self) -> str:
@@ -68,3 +67,17 @@ core.script.TaprootInfo = TaprootInfo
 def taproot_from_privkey(pk: key.ECKey, scripts=None) -> script.TaprootInfo:
     x_only, _ = key.compute_xonly_pubkey(pk.get_bytes())
     return script.taproot_construct(x_only, scripts=scripts)
+
+
+def cscript_bytes_to_int(vch: bytes) -> int:
+    """
+    A port of CScriptNum.set_vch.
+    """
+    if len(vch) == 0:
+        return 0
+    s = 0
+    for i, a in enumerate(vch):
+        s |= a << (8 * i)
+    if vch[-1] & 0x80:
+        return -(s & ~(0x80 << (8 * (len(vch) - 1))))
+    return s
