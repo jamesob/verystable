@@ -1,9 +1,10 @@
+import time
 import typing as t
 from dataclasses import dataclass
 from functools import cached_property
 
 from . import core
-from .rpc import BitcoinRPC
+from .rpc import BitcoinRPC, JSONRPCError
 from .core.script import CScript
 from .core.messages import COutPoint, CTxOut, CTxIn
 
@@ -91,14 +92,38 @@ def get_confs_for_txid(
 
 
 def get_relevant_blocks(
-    rpc: BitcoinRPC, addrs: t.Iterable[str], startheight: int = 0
+    rpc: BitcoinRPC,
+    addrs: t.Iterable[str],
+    startheight: int = 0,
+    max_wait_secs: int = 5,
 ) -> list[tuple[int, dict]]:
     """
     Given some addresses, return height/block pairs with relevant activity.
     """
     scanarg = [f"addr({addr})" for addr in addrs]
 
-    got = rpc.scanblocks("start", scanarg, startheight)
+    def wait_for_scan_end(to_wait_secs: int = max_wait_secs):
+        while (status := rpc.scanblocks("status")) and to_wait_secs >= 0:
+            log.info("scanblocks in progress: %s", status)
+            to_wait_secs -= 1
+            time.sleep(1)
+
+    wait_for_scan_end()
+
+    def scanblocks() -> dict:
+        return rpc._call("scanblocks", "start", scanarg, startheight, timeout=10_000)
+
+    try:
+        got = scanblocks()
+    except JSONRPCError as e:
+        if e.code == -8:
+            # scan already in progress
+            wait_for_scan_end()
+            try:
+                got = scanblocks()
+            except JSONRPCError as e:
+                log.exception("scanblocks call busy for too long")
+
     assert "relevant_blocks" in got
 
     heights_and_blocks = []
