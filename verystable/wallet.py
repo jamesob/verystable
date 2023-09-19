@@ -68,13 +68,11 @@ class Spend:
     def __repr__(self) -> str:
         return (
             f"Spend(amt={self.spent_utxo.value_sats} "
-            f"from_addr={self.spent_utxo.address}, height={self.height})"
-        )
+            f"from_addr={self.spent_utxo.address}, height={self.height})")
 
 
 def get_confs_for_txid(
-    rpc: BitcoinRPC, target_txid: str, min_height: int = 0
-) -> int | None:
+        rpc: BitcoinRPC, target_txid: str, min_height: int = 0) -> int | None:
     """Return the number of confirmations for a transaction."""
     height = rpc.getblockcount()
     found_height = None
@@ -124,6 +122,7 @@ def get_relevant_blocks(
                 got = scanblocks()
             except JSONRPCError as e:
                 log.exception("scanblocks call busy for too long")
+        raise
 
     assert "relevant_blocks" in got
 
@@ -153,9 +152,8 @@ def get_addr_history(
         for tx in block["tx"]:
             # Detect new utxos
             for vout in tx["vout"]:
-                if (addr := vout.get("scriptPubKey", {}).get("address")) and (
-                    addr in addr_watchlist
-                ):
+                if (addr := vout.get("scriptPubKey",
+                                     {}).get("address")) and (addr in addr_watchlist):
                     op = Outpoint(tx["txid"], vout["n"])
                     utxo = Utxo(op, addr, btc_to_sats(vout["value"]), height)
                     outpoint_to_utxo[op] = utxo
@@ -218,22 +216,25 @@ class SingleAddressWallet:
                     op,
                     self.fee_addr,
                     btc_to_sats(unspent["amount"]),
-                    0,  # FIXME
-                )
-            )
+                    height=unspent['height'],
+                ))
 
     def sign_msg(self, msg: bytes) -> bytes:
         """Sign a message with the fee wallet's private key."""
         return core.key.sign_schnorr(
-            core.key.tweak_add_privkey(self.privkey, self.tr_info.tweak), msg
-        )
+            core.key.tweak_add_privkey(self.privkey, self.tr_info.tweak), msg)
 
     def get_utxo(self) -> Utxo:
         self.rescan()
-        try:
-            return self.utxos.pop()
-        except IndexError:
+        height = self.rpc.getblockcount()
+        if not self.utxos:
             raise RuntimeError(
                 "Fee wallet empty! Add coins with "
-                f"`bitcoin-cli -regtest generatetoaddress 20 {self.fee_addr}`"
-            )
+                f"`bitcoin-cli -regtest generatetoaddress 20 {self.fee_addr}`")
+
+        self.utxos.sort(key=lambda u: u.height)
+        if (height - self.utxos[0].height) < 100:
+            raise RuntimeError(
+                "No mature coins available; call `-generate` a few times. ")
+
+        return self.utxos.pop(0)
