@@ -1,11 +1,12 @@
 import time
+import secrets
 import typing as t
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property
 
 from . import core
 from .rpc import BitcoinRPC, JSONRPCError
-from .core.script import CScript
+from .core.script import CScript, taproot_construct
 from .core.messages import COutPoint, CTxOut, CTxIn
 
 import logging
@@ -179,3 +180,60 @@ def get_addr_history(
                 outpoint_to_utxo.pop(op)
 
     return utxos, spent
+
+
+@dataclass
+class SingleAddressWallet:
+    """
+    World's worst P2TR single-address wallet.
+    Doesn't track history, just gives you UTXOs. Possibly good for fee management.
+    """
+
+    rpc: BitcoinRPC
+    seed: bytes = field(default_factory=lambda: secrets.token_bytes(32))
+    utxos: list[Utxo] = field(default_factory=list)
+
+    def __post_init__(self):
+        self.key = core.key.ECKey()
+        self.key.set(self.seed, compressed=True)
+        self.pubkey = self.key.get_pubkey().get_bytes()[1:]
+        self.privkey = self.key.get_bytes()
+        self.tr_info = taproot_construct(self.pubkey)
+        self.fee_addr = core.address.output_key_to_p2tr(self.tr_info.output_pubkey)
+        self.fee_spk = core.address.address_to_scriptpubkey(self.fee_addr)
+
+    def rescan(self):
+        """Use scantxoutset to recompute UTXOs. Probably pretty slow on mainnet."""
+        self.utxos = []
+
+        res = self.rpc.scantxoutset("start", [f"addr({self.fee_addr})"])
+        if not (unspents := res.get("unspents")):
+            log.warning("couldn't find any fee outputs")
+            return
+
+        for unspent in unspents:
+            op = Outpoint(unspent["txid"], unspent["vout"])
+            self.utxos.append(
+                Utxo(
+                    op,
+                    self.fee_addr,
+                    btc_to_sats(unspent["amount"]),
+                    0,  # FIXME
+                )
+            )
+
+    def sign_msg(self, msg: bytes) -> bytes:
+        """Sign a message with the fee wallet's private key."""
+        return core.key.sign_schnorr(
+            core.key.tweak_add_privkey(self.privkey, self.tr_info.tweak), msg
+        )
+
+    def get_utxo(self) -> Utxo:
+        self.rescan()
+        try:
+            return self.utxos.pop()
+        except IndexError:
+            raise RuntimeError(
+                "Fee wallet empty! Add coins with "
+                f"`bitcoin-cli -regtest generatetoaddress 20 {self.fee_addr}`"
+            )
