@@ -5,7 +5,7 @@ import pathlib
 from . import wallet, script
 
 
-class Json:
+class VSJson:
     """
     JSON serialization that knows how to deal with bytes, dates, and various bitcoin
     structures.
@@ -24,17 +24,17 @@ class Json:
 
         def default(self, o):
             if isinstance(o, bytes):
-                return {"_type": "hex", "_val": o.hex()}
+                return {"__hex": o.hex()}
             elif isinstance(o, datetime.datetime):
-                return {"_type": "datetime", "_val": o.isoformat()}
+                return {"__datetime": o.isoformat()}
             elif isinstance(o, pathlib.Path):
-                return {"_type": "path", "_val": str(o)}
+                return {"__path": str(o)}
             elif isinstance(o, script.CScript):
-                return {"_type": "CScript", "_val": o.hex()}
+                return {"__CScript": o.hex()}
             elif isinstance(o, script.CTransaction):
-                return {"_type": "CTransaction", "_val": o.tohex()}
+                return {"__CTransaction": o.tohex()}
 
-            elif cls := Json.ALLOWED_CLASSES.get(o.__class__.__name__):
+            elif cls := VSJson.ALLOWED_CLASSES.get(o.__class__.__name__):
                 d = dict(o.__dict__)
                 if allowed_fields := getattr(o, "__dataclass_fields__", []):
                     d = {k: v for k, v in o.__dict__.items() if k in allowed_fields}
@@ -51,17 +51,17 @@ class Json:
             o.pop("_class")
             return ObjectClass(**o)
 
-        if (type_ := o.get("_type")) and (val := o.get("_val")) is not None:
-            match type_:
-                case "hex":
+        if len(o) == 1:
+            match dict(o).popitem():
+                case "__hex", val:
                     return bytes.fromhex(val)
-                case "path":
+                case "__path", val:
                     return pathlib.Path(val)
-                case "datetime":
+                case "__datetime", val:
                     return datetime.datetime.fromisoformat(val)
-                case "CScript":
+                case "__CScript", val:
                     return script.CScript(bytes.fromhex(val))
-                case "CTransaction":
+                case "__CTransaction", val:
                     return script.CTransaction.fromhex(val)
 
         return o
@@ -72,4 +72,4 @@ class Json:
 
     @classmethod
     def loads(cls, *args, **kwargs):
-        return json.loads(*args, object_hook=Json.object_hook, **kwargs)
+        return json.loads(*args, object_hook=VSJson.object_hook, **kwargs)

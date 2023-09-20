@@ -188,6 +188,11 @@ class SingleAddressWallet:
     """
 
     rpc: BitcoinRPC
+
+    # Users of this class are responsible for tracking/persisting locked UTXOs
+    # across program restarts.
+    locked_utxos: list[Outpoint]
+
     seed: bytes = field(default_factory=lambda: secrets.token_bytes(32))
     utxos: list[Utxo] = field(default_factory=list)
 
@@ -225,16 +230,21 @@ class SingleAddressWallet:
             core.key.tweak_add_privkey(self.privkey, self.tr_info.tweak), msg)
 
     def get_utxo(self) -> Utxo:
+        """Return a UTXO that is mature and not currently locked."""
         self.rescan()
-        height = self.rpc.getblockcount()
-        if not self.utxos:
+        utxos = [u for u in list(self.utxos) if u.outpoint not in self.locked_utxos]
+
+        if not utxos:
             raise RuntimeError(
                 "Fee wallet empty! Add coins with "
                 f"`bitcoin-cli -regtest generatetoaddress 20 {self.fee_addr}`")
 
-        self.utxos.sort(key=lambda u: u.height)
+        height = self.rpc.getblockcount()
+        utxos.sort(key=lambda u: u.height)
         if (height - self.utxos[0].height) < 100:
             raise RuntimeError(
                 "No mature coins available; call `-generate` a few times. ")
 
-        return self.utxos.pop(0)
+        utxo = utxos.pop(0)
+        self.locked_utxos.append(utxo.outpoint)
+        return utxo
