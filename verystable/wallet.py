@@ -19,8 +19,11 @@ class Outpoint:
     txid: str
     n: int
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.txid}:{self.n}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 def btc_to_sats(btc) -> int:
@@ -58,6 +61,8 @@ class Utxo:
     def outpoint_str(self) -> str:
         return str(self.outpoint)
 
+    def __hash__(self) -> int:
+        return hash(str(self.outpoint))
 
 @dataclass
 class Spend:
