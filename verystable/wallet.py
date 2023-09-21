@@ -25,6 +25,9 @@ class Outpoint:
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def __eq__(self, o) -> bool:
+        return self.__dict__ == o.__dict__
+
 
 def btc_to_sats(btc) -> int:
     return int(btc * core.messages.COIN)
