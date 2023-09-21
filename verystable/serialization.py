@@ -13,7 +13,7 @@ class VSJson:
 
     # Append to this dynamically as needed to allow certain classes to be
     # serialized/deserialized.
-    ALLOWED_CLASSES = {c.__name__: c for c in (wallet.Outpoint,)}
+    ALLOWED_CLASSES = {}
 
     @classmethod
     def add_allowed_classes(cls, *classes):
