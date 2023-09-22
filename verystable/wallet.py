@@ -26,7 +26,7 @@ class Outpoint:
         return hash(str(self))
 
     def __eq__(self, o) -> bool:
-        return self.__dict__ == o.__dict__
+        return self.__dict__ == getattr(o, '__dict__', {})
 
 
 def btc_to_sats(btc) -> int:
