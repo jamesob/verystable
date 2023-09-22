@@ -199,7 +199,7 @@ class SingleAddressWallet:
 
     # Users of this class are responsible for tracking/persisting locked UTXOs
     # across program restarts.
-    locked_utxos: list[Outpoint]
+    locked_utxos: set[Outpoint]
 
     seed: bytes = field(default_factory=lambda: secrets.token_bytes(32))
     utxos: list[Utxo] = field(default_factory=list)
@@ -254,5 +254,5 @@ class SingleAddressWallet:
                 "No mature coins available; call `-generate` a few times. ")
 
         utxo = utxos.pop(0)
-        self.locked_utxos.append(utxo.outpoint)
+        self.locked_utxos.add(utxo.outpoint)
         return utxo
