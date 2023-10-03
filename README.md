@@ -46,7 +46,7 @@ $ pip install -e .
 ```
 
 Bitcoin Core test utilities (among other things) are then importable:
-```
+```python
 $ python
 >>> import verystable
 >>> verystable.core.p2p.MAGIC_BYTES
@@ -63,13 +63,13 @@ Examples are contained in [examples/](examples/).
 ## Running tests
 
 ```
-make build
+make docker-pull
 make test
 ```
 
 ## Adding tests
 
-Just add a function prefixed with `pytest` and it will be collected by the
+Just add a function prefixed with `pytest` in any file and it will be collected by the
 py.test runner.
 
 
