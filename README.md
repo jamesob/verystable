@@ -67,9 +67,15 @@ Examples are contained in [examples/](examples/).
 
 ## Running tests
 
-```
+```shell
+# with docker
 make docker-pull
 make test
+
+# without docker
+pip installe -e .[tests]
+pytest verystable
+ruff verystable
 ```
 
 ## Adding tests
