@@ -13,7 +13,7 @@ class VSJson:
 
     # Append to this dynamically as needed to allow certain classes to be
     # serialized/deserialized.
-    ALLOWED_CLASSES: dict[str, object] = {}
+    ALLOWED_CLASSES: dict[str, type] = {}
 
     @classmethod
     def add_allowed_classes(cls, *classes):

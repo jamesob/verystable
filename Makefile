@@ -16,10 +16,11 @@ build:
 test: 
 	$(rundocker) pytest verystable
 	$(rundocker) ruff verystable
+	$(rundocker) mypy verystable
 
 shell: 
-	$(rundockerit) bash
+	$(rundocker) bash
 
 
 ipy:
-	$(rundockerit) ipython
+	$(rundocker) ipython

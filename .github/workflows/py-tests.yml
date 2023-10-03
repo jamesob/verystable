@@ -23,5 +23,5 @@ jobs:
     - name: Pull test container
       run: make docker-pull
 
-    - name: pytest + ruff
+    - name: pytest + ruff + mypy
       run: make test

@@ -61,7 +61,7 @@ class TaprootInfo(__TaprootInfo):
         )
 
 
-core.script.TaprootInfo = TaprootInfo
+core.script.TaprootInfo = TaprootInfo  # type: ignore
 
 
 def taproot_from_privkey(pk: key.ECKey, scripts=None) -> script.TaprootInfo:
