@@ -8,3 +8,16 @@ version = "25.99.0-dev"
 dependencies = [
     'importlib-metadata; python_version<"3.11"',
 ]
+
+[project.optional-dependencies]
+tests = [
+    'pytest',
+    'mypy',
+    'ruff',
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--ignore=verystable/core"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+python_functions = ["pytest_*", "_pytest_*"]
