@@ -22,6 +22,8 @@ This gives us good utilities for interacting with the P2P layer
 
 This module could help with a variety of tasks:
 
+  - experimenting with script,
+  - demonstrating proposals,
   - building a local relay which adapts the user's choice of
     protocol to bitcoin P2P messages,
   - monitoring via the P2P network,
@@ -32,11 +34,19 @@ This module could help with a variety of tasks:
 ## Installation
 
 ```sh
+pip install verystable
+```
+
+or from source:
+
+```sh
 $ git clone https://github.com/jamesob/verystable.git
 $ cd verystable
 $ pip install -e .
+```
 
-# The bitcoincore module is then importable.
+Bitcoin Core test utilities (among other things) are then importable:
+```
 $ python
 >>> import verystable
 >>> verystable.core.p2p.MAGIC_BYTES
@@ -49,6 +59,19 @@ $ python
 ## Examples
 
 Examples are contained in [examples/](examples/).
+
+## Running tests
+
+```
+make build
+make test
+```
+
+## Adding tests
+
+Just add a function prefixed with `pytest` and it will be collected by the
+py.test runner.
+
 
 ## Pulling from upstream
 
