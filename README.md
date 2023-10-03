@@ -60,6 +60,11 @@ $ python
 
 Examples are contained in [examples/](examples/).
 
+- [jamesob/opvault-demo](https://github.com/jamesob/opvault-demo): a wallet using
+  `verystable` to demonstrate an end-to-end use of the [BIP-345 (`OP_VAULT`)
+  proposal](https://github.com/jamesob/bips/blob/jamesob-23-02-opvault/bip-0345.mediawiki)
+
+
 ## Running tests
 
 ```
