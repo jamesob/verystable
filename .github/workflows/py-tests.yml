@@ -1,6 +1,14 @@
-name: build
+name: CI
 
-on: [pull_request]
+on: 
+  pull_request:
+  push:
+    branches:
+      - master
+
+env:
+  # Used in Makefile
+  ON_GITHUB: 1
 
 jobs:
   test:
@@ -13,7 +21,7 @@ jobs:
         python-version: '3.11'
 
     - name: Pull test container
-      run: make build
+      run: make docker-pull
 
     - name: pytest + ruff
       run: make test
