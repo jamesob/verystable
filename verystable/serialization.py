@@ -2,7 +2,7 @@ import json
 import datetime
 import pathlib
 
-from . import wallet, script
+from . import script
 
 
 class VSJson:
@@ -13,7 +13,7 @@ class VSJson:
 
     # Append to this dynamically as needed to allow certain classes to be
     # serialized/deserialized.
-    ALLOWED_CLASSES = {}
+    ALLOWED_CLASSES: dict[str, object] = {}
 
     @classmethod
     def add_allowed_classes(cls, *classes):
