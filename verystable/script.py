@@ -19,9 +19,9 @@ class CTransaction(core.messages.CTransaction):
         for i, wit in enumerate(self.wit.vtxinwit):
             s += f"    - [{i}]\n"
             for j, item in enumerate(wit.scriptWitness.stack):
-                if type(item) == bytes:
+                if isinstance(item, bytes):
                     scriptstr = repr(CScript([item]))
-                elif type(item) in {CScript, CScriptNum}:
+                elif isinstance(item, (CScript, CScriptNum)):
                     scriptstr = repr(item)
                 else:
                     raise NotImplementedError

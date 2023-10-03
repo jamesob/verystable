@@ -1,5 +1,3 @@
-
-import types
 import struct
 
 from .core import script, messages
@@ -28,7 +26,8 @@ def _get_standard_template_hash(self, nIn):
     r += struct.pack("<i", self.nVersion)
     r += struct.pack("<I", self.nLockTime)
     if any(inp.scriptSig for inp in self.vin):
-        r += messages.sha256(b"".join(messages.ser_string(inp.scriptSig) for inp in self.vin))
+        r += messages.sha256(
+            b"".join(messages.ser_string(inp.scriptSig) for inp in self.vin))
     r += struct.pack("<I", len(self.vin))
     r += messages.sha256(b"".join(struct.pack("<I", inp.nSequence) for inp in self.vin))
     r += struct.pack("<I", len(self.vout))

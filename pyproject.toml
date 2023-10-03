@@ -19,5 +19,13 @@ tests = [
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "--ignore=verystable/core"
-python_files = ["tests.py", "test_*.py", "*_tests.py"]
+python_files = ["*.py"]
 python_functions = ["pytest_*", "_pytest_*"]
+
+[tool.ruff]
+exclude = ["verystable/core"]
+line-length = 88
+ignore-init-module-imports = true
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]

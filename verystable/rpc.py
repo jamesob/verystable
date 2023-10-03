@@ -23,7 +23,6 @@ import http.client
 import os
 import http.client as httplib
 
-from typing import IO, Optional as Op
 from decimal import Decimal
 
 
