@@ -7,6 +7,8 @@ import re
 import hashlib
 import hmac
 import struct
+import typing as t
+from dataclasses import dataclass
 
 from .core import secp256k1 as SECP256K1
 from .core.key import ECKey, ECPubKey
@@ -82,43 +84,55 @@ def _deriv_path_str_to_list(strpath):
     return list_path
 
 
-class BIP32:
-    ver_xpub = 0x0488B21E
-    ver_xpriv = 0x0488ADE4
-    ver_tpub = 0x043587CF
-    ver_tpriv = 0x04358394
+ver_xpub = 0x0488B21E
+ver_xpriv = 0x0488ADE4
+ver_tpub = 0x043587CF
+ver_tpriv = 0x04358394
 
-    def __init__(self, key=b'', public=None):
-        if isinstance(key, BIP32):
-            assert public is None
-            self.key = key.key
-            self.chain = key.chain
-            self.child = key.child
-            self.fprpar = key.fprpar
-            self.depth = key.depth
-            self.public = key.public
-        else:
-            self.gen_master(key)
-            self.public = bool(public)
+
+@dataclass
+class BIP32:
+
+    key: t.Optional[t.Union[ECKey, ECPubKey]] = None
+    public: bool = False
+    chain: bytes = b''
+    child: int = 0
+    fprpar: int = 0
+    depth: int = 0
+
+    @classmethod
+    def from_bytes(cls, seed: bytes, public: bool = False) -> 'BIP32':
+        new = cls()
+        r = hmac.new(b'Bitcoin seed', msg=seed, digestmod=hashlib.sha512).digest()
+        IL, IR = r[:32], r[32:]
+        new.key = ECKey()
+        new.key.set(IL, compressed=True)
+        new.chain = IR
+        new.child = new.fprpar = new.depth = 0
+        new.public = public
+        return new
+
+    @classmethod
+    def from_other(cls, other: 'BIP32') -> 'BIP32':
+        b32 = cls()
+        b32.key = other.key
+        b32.chain = other.chain
+        b32.child = other.child
+        b32.fprpar = other.fprpar
+        b32.depth = other.depth
+        b32.public = other.public
+        return b32
 
     def __repr__(self) -> str:
         return self.serialize()
-
-    def gen_master(self, seed) -> None:
-        r = hmac.new(b'Bitcoin seed', msg=seed, digestmod=hashlib.sha512).digest()
-        IL, IR = r[:32], r[32:]
-        self.key = ECKey()
-        self.key.set(IL, compressed=True)
-        self.chain = IR
-        self.child = self.fprpar = self.depth = 0
 
     def serialize(self) -> str:
         assert isinstance(self.key, (ECKey, ECPubKey))
         priv = isinstance(self.key, ECKey)
         if self.public:
-            ver = self.ver_xpriv if priv else self.ver_xpub
+            ver = ver_xpriv if priv else ver_xpub
         else:
-            ver = self.ver_tpriv if priv else self.ver_tpub
+            ver = ver_tpriv if priv else ver_tpub
         s = struct.pack(">LBLL", ver, self.depth, self.fprpar, self.child)
         s += self.chain
         if priv:
@@ -134,13 +148,13 @@ class BIP32:
         b32 = cls()
         (ver, b32.depth, b32.fprpar, b32.child) = struct.unpack(">LBLL", s[:13])
         b32.chain = s[13:45]
-        if ver in (b32.ver_xpriv, b32.ver_xpub):
+        if ver in (ver_xpriv, ver_xpub):
             b32.public = True
-        elif ver in (b32.ver_tpriv, b32.ver_tpub):
+        elif ver in (ver_tpriv, ver_tpub):
             b32.public = False
         else:
             assert False, ("unknown ext key type %08x" % (ver))
-        if ver in (b32.ver_xpriv, b32.ver_tpriv):
+        if ver in (ver_xpriv, ver_tpriv):
             assert s[45] == 0
             b32.key = ECKey()
             b32.key.set(s[46:78], compressed=True)
@@ -159,16 +173,19 @@ class BIP32:
     def neuter(self) -> 'BIP32':
         """Return a version of this instance without the privkey."""
         if isinstance(self.key, ECKey):
-            r = BIP32(self)
+            r = BIP32.from_other(self)
+            assert isinstance(r.key, ECKey)
             r.key = r.key.get_pubkey()
             return r
         else:
             return self
 
     def fingerprint(self) -> int:
-        return int.from_bytes(hash160(self.neuter().key.get_bytes())[:4], 'big')
+        samekey = self.neuter().key
+        assert isinstance(samekey, (ECKey, ECPubKey))
+        return int.from_bytes(hash160(samekey.get_bytes())[:4], 'big')
 
-    def derive(self, *path) -> tuple['BIP32', int]:
+    def derive(self, *path: int) -> tuple['BIP32', int]:
         c = self
         tweak = 0
         for i in path:
@@ -176,16 +193,18 @@ class BIP32:
             tweak = (tweak + t) % SECP256K1.GE.ORDER
         return c, tweak
 
-    def derive_one(self, i) -> tuple['BIP32', int]:
+    def derive_one(self, i: int) -> tuple['BIP32', int]:
         assert i == int(i) and 0 <= i < 2**32
 
-        child = BIP32(self)
+        child = BIP32.from_other(self)
         child.child = i
         child.fprpar = self.fingerprint()
         child.depth += 1
 
         if i < HARDENED_INDEX:
-            d = self.neuter().key.get_bytes()
+            samekey = self.neuter().key
+            assert isinstance(samekey, (ECKey, ECPubKey))
+            d = samekey.get_bytes()
         else:
             assert isinstance(self.key, ECKey)
             d = b"\0" + self.key.get_bytes()
@@ -200,11 +219,13 @@ class BIP32:
             child.key = ECPubKey()
             child.key.compressed = self.key.compressed
             child.key.p = self.key.p + (tweak * SECP256K1.G)
-        else:
+        elif self.key:
             child.key = ECKey()
             child.key.secret = (self.key.secret + tweak) % SECP256K1.GE.ORDER
             child.key.valid = self.key.valid and self.key.secret > 0
             child.key.compressed = self.key.compressed
+        else:
+            raise ValueError("no underlying key")
 
         return child, tweak
 
@@ -312,7 +333,7 @@ def pytest_bip32():
     ]
 
     for seed, hier in tests.items():
-        b = BIP32(unhexlify(seed.encode('utf8')), public=True)
+        b = BIP32.from_bytes(unhexlify(seed.encode('utf8')), public=True)
         for pub, priv, i in hier:
             assert pub == b.neuter().serialize()
             assert priv == b.serialize()
