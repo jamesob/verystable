@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "verystable"
 description = "Tools for experimenting with Bitcoin Core"
 readme = "README.md"
-version = "25.99.0-dev"
+version = "28.1.0-dev"
 dependencies = [
     'importlib-metadata; python_version<"3.11"',
 ]
