@@ -31,4 +31,4 @@ def __BLOWUP(*args, **kwargs):
     raise RuntimeError("This usage should not be generating key material!!")
 
 key.generate_privkey = __BLOWUP
-key.ECKey.generate = types.MethodType(__BLOWUP, key.ECKey)  # type: ignore
+key.ECKey.generate = types.MethodType(__BLOWUP, key.ECKey)
