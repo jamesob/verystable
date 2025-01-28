@@ -10,7 +10,7 @@ import struct
 import typing as t
 from dataclasses import dataclass
 
-from .core import secp256k1 as SECP256K1
+from .core.crypto import secp256k1 as SECP256K1
 from .core.key import ECKey, ECPubKey
 from .core.script import hash160, hash256
 from .core.util import assert_equal

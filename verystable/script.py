@@ -7,7 +7,7 @@ from .core.script import CScript, CScriptNum
 
 class CTransaction(core.messages.CTransaction):
     def pformat(self) -> str:
-        s = f"CTransaction: (nVersion={self.nVersion})\n"
+        s = f"CTransaction: (version={self.version})\n"
         s += "  vin:\n"
         for i, inp in enumerate(self.vin):
             s += f"    - [{i}] {inp}\n"

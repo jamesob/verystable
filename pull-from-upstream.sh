@@ -25,3 +25,5 @@ find $(pwd)/${TARGET} -type f -print0 | \
     xargs -0 sed -i 's/^from test_framework\./from ./g'
 find $(pwd)/${TARGET} -type f -print0 | \
     xargs -0 sed -i 's/^from test_framework/from ./g'
+find $(pwd)/${TARGET}/crypto -type f -print0 | \
+    xargs -0 sed -i 's/^from \.crypto/from /g'

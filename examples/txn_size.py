@@ -18,7 +18,7 @@ def make_ctv_lightning_close():
     https://github.com/lightning/bolts/blob/master/03-transactions.md#closing-transaction
     """
     tx = CTransaction()
-    tx.nVersion = 2
+    tx.version = 2
     tx.vin = [DUMMY_IN]
     tx.vout = [
         CTxOut(nValue=10000, scriptPubKey=CScript([OP_4, DUMMY_HASH])),
@@ -36,7 +36,7 @@ def make_non_ctv_lightning_close():
     https://github.com/lightning/bolts/blob/master/03-transactions.md#closing-transaction
     """
     tx = CTransaction()
-    tx.nVersion = 2
+    tx.version = 2
     tx.vin = [DUMMY_IN]
     tx.vout = [
         CTxOut(nValue=10000, scriptPubKey=CScript([OP_1, DUMMY_HASH])),

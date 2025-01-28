@@ -25,3 +25,8 @@ jobs:
 
     - name: pytest + ruff + mypy
       run: make test
+
+    - name: examples
+      run: |
+        pip install -e .
+        python ./examples/txn_size.py
